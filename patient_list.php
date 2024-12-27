@@ -1,70 +1,55 @@
 <?php
-// Start the session
+// Start session
 session_start();
 
-// memastikan login sebagai dokter
+// memastikan user login sebagai dokter
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'dokter') {
     header("Location: login_dokter.php");
     exit;
 }
 
-// Mengambil nama pengguna dan ID dokter dari sesi
-$username = isset($_SESSION['username']) ? htmlspecialchars($_SESSION['username']) : "dokter";
-$id_dokter = isset($_SESSION['id_dokter']) ? $_SESSION['id_dokter'] : null; // Get doctor ID from session
+// ambil ID dokter yang masuk 
+$id_dokter = isset($_SESSION['id_dokter']) ? $_SESSION['id_dokter'] : null;
 
-// Check jika ID dokter ada
 if (!$id_dokter) {
-    die("Doctor ID is not set.");
+    die("Doctor ID is not set in the session.");
 }
 
-// koneksi ke database
 include('config.php');
 
-// megambil data untuk dashboard
-$query_appointments = "SELECT COUNT(*) AS total_appointments FROM daftar_poli dp
-                        JOIN jadwal_periksa jp ON dp.id_jadwal = jp.id
-                        WHERE jp.id_dokter = ?";
-$query_history = "SELECT COUNT(*) AS total_history FROM periksa p
-                   JOIN daftar_poli dp ON p.id_daftar_poli = dp.id
-                   JOIN jadwal_periksa jp ON dp.id_jadwal = jp.id
-                   WHERE jp.id_dokter = ?";
 
-// mempersiapkan dan menjalankan query janji temu
-$stmt_appointments = $conn->prepare($query_appointments);
-$stmt_appointments->bind_param("i", $id_dokter);
-$stmt_appointments->execute();
-$total_appointments = $stmt_appointments->get_result()->fetch_assoc()['total_appointments'];
+$query_patients = "
+    SELECT dp.id, p.nama, dp.keluhan, dp.no_antrian, per.tgl_periksa, dp.id_pasien
+    FROM daftar_poli dp
+    JOIN jadwal_periksa jp ON dp.id_jadwal = jp.id
+    JOIN pasien p ON dp.id_pasien = p.id
+    LEFT JOIN periksa per ON per.id_daftar_poli = dp.id
+    WHERE jp.id_dokter = ?";
+$stmt = $conn->prepare($query_patients);
+$stmt->bind_param("i", $id_dokter);
+$stmt->execute();
+$patients = $stmt->get_result();
 
-// mempersiapkan dan menjalankan query riwayat
-$stmt_history = $conn->prepare($query_history);
-$stmt_history->bind_param("i", $id_dokter);
-$stmt_history->execute();
-$total_history = $stmt_history->get_result()->fetch_assoc()['total_history'];
-
-// logout 
 if (isset($_GET['logout'])) {
     session_destroy();
     header("Location: home.html");
     exit;
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Doctor Dashboard</title>
-    <!-- Include Bootstrap and AdminLTE CSS -->
+    <title>Patient List</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2.0/dist/css/adminlte.min.css">
-    <!-- Include FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2.0/dist/js/adminlte.min.js"></script>
     <style>
         body {
-            background: #f8f9fa;
+            background-color: #f8f9fa;
         }
         .main-sidebar {
             background: #1e2d3b;
@@ -98,22 +83,12 @@ if (isset($_GET['logout'])) {
             background: #006494;
             color: #fff;
         }
-        .card {
-            transition: transform 0.3s ease;
-        }
-        .card:hover {
-            transform: translateY(-10px);
-        }
-        .card-title {
-            font-size: 2rem;
-            font-weight: bold;
-        }
-        footer {
-            background: #1e2d3b;
-            color: #fff;
-        }
-        footer a {
-            color: #f39c12;
+        .container {
+            margin-top: 50px;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
     </style>
 </head>
@@ -134,7 +109,7 @@ if (isset($_GET['logout'])) {
                         <img src="https://via.placeholder.com/150" class="img-circle elevation-2" alt="User Image">
                     </div>
                     <div class="info">
-                        <a href="#" class="d-block"><?php echo $username; ?></a>
+                        <a href="#" class="d-block"><?php echo htmlspecialchars($_SESSION['username']); ?></a>
                     </div>
                 </div>
 
@@ -183,7 +158,7 @@ if (isset($_GET['logout'])) {
                 <div class="container-fluid">
                     <div class="row mb-2">
                         <div class="col-sm-6">
-                            <h1 class="m-0">Doctor Dashboard</h1>
+                            <h1 class="m-0">Patient List</h1>
                         </div>
                     </div>
                 </div>
@@ -193,25 +168,42 @@ if (isset($_GET['logout'])) {
             <section class="content">
                 <div class="container-fluid">
                     <div class="row">
-                        <!-- Card for Upcoming Appointments -->
-                        <div class="col-md-3">
-                            <div class="card bg-info text-white mb-3">
-                                <div class="card-header">Upcoming Appointments</div>
-                                <div class="card-body">
-                                    <h5 class="card-title"><?php echo $total_appointments; ?></h5>
-                                </div>
+                        <div class="col-md-12">
+                            <div class="container">
+                                <h2>Patient List</h2>
+                                <?php if ($patients->num_rows > 0) { ?>
+                                    <table class="table table-bordered">
+                                        <thead>
+                                        <tr>
+                                            <th>Patient Name</th>
+                                            <th>Complaint</th>
+                                            <th>Queue Number</th>
+                                            <th>Examination Date</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        <?php while ($row = $patients->fetch_assoc()) { ?>
+                                            <tr>
+                                                <td><?php echo htmlspecialchars($row['nama']); ?></td>
+                                                <td><?php echo htmlspecialchars($row['keluhan']); ?></td>
+                                                <td><?php echo htmlspecialchars($row['no_antrian']); ?></td>
+                                                <td><?php echo htmlspecialchars($row['tgl_periksa'] ?? 'Not Set'); ?></td>
+                                                <td>
+                                                    <!-- Buttons for managing records -->
+                                                    <a href="manage_pasienn.php?id_daftar_poli=<?php echo $row['id']; ?>" class="btn btn-primary btn-sm">Manage</a>
+                                                    <a href="history_pasien.php?id_pasien=<?php echo $row['id_pasien']; ?>" class="btn btn-secondary btn-sm">History</a>
+                                                </td>
+                                            </tr>
+                                        <?php } ?>
+                                        </tbody>
+                                    </table>
+                                <?php } else { ?>
+                                    <div class="alert alert-warning">No patients found for your schedule.</div>
+                                <?php } ?>
                             </div>
                         </div>
-
-                        <!-- Card for Patient History -->
-                        <div class="col-md-3">
-                            <div class="card bg-success text-white mb-3">
-                                <div class="card-header">Patient History</div>
-                                <div class="card-body">
-                                    <h5 class="card-title"><?php echo $total_history; ?></h5>
-                                </div>
-                            </div>
-                        </div>
+                    </div>
                 </div>
             </section>
         </div>

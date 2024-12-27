@@ -4,14 +4,14 @@ session_start();
 
 //role admin
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-    header("Location: login.php");
+    header("Location: admin_dashboard.php");
     exit;
 }
 
 
 $username = isset($_SESSION['username']) ? htmlspecialchars($_SESSION['username']) : "Admin";
 
-// database connection 
+// koneksi ke database
 include('config.php');
 
 // menampilkan data yg dimasukkan
@@ -30,10 +30,10 @@ $total_dokter = $result_dokter->fetch_assoc()['total_dokter'];
 $total_poli = $result_poli->fetch_assoc()['total_poli'];
 $total_obat = $result_obat->fetch_assoc()['total_obat'];
 
-// Handle logout 
+// logout 
 if (isset($_GET['logout'])) {
     session_destroy();
-    header("Location: login.php");
+    header("Location: home.html");
     exit;
 }
 ?>
@@ -43,13 +43,67 @@ if (isset($_GET['logout'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard</title>
-    <!--  Bootstrap and AdminLTE CSS -->
+    <!-- Bootstrap and AdminLTE CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2.0/dist/css/adminlte.min.css">
-    <!--  FontAwesome for Icons -->
+    <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2.0/dist/js/adminlte.min.js"></script>
+    <style>
+        body {
+            background: #f8f9fa;
+        }
+        .main-sidebar {
+            background: #1e2d3b;
+        }
+        .brand-link {
+            background: #004d7a;
+            color: #fff;
+            text-align: center;
+            font-size: 1.25rem;
+            padding: 15px 0;
+        }
+        .user-panel .info a {
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+        .card-header {
+            background: #004d7a;
+            color: #fff;
+        }
+        .card-body {
+            background: #fff;
+            color: #333;
+        }
+        .nav-link {
+            color: #ddd;
+            font-size: 1rem;
+            padding: 12px 15px;
+        }
+        .nav-link:hover {
+            background: #006494;
+            color: #fff;
+        }
+        .card {
+            transition: transform 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-10px);
+        }
+        .card-title {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+        footer {
+            background: #1e2d3b;
+            color: #fff;
+        }
+        footer a {
+            color: #f39c12;
+        }
+    </style>
 </head>
 <body class="hold-transition sidebar-mini layout-fixed">
     <div class="wrapper">
@@ -57,7 +111,7 @@ if (isset($_GET['logout'])) {
         <aside class="main-sidebar sidebar-dark-primary elevation-4">
             <!-- Brand Logo -->
             <a href="#" class="brand-link">
-                <span class="brand-text font-weight-light">Admin Dashboard</span>
+                <span class="brand-text">Admin Dashboard</span>
             </a>
 
             <!-- Sidebar -->
@@ -118,7 +172,7 @@ if (isset($_GET['logout'])) {
 
         <!-- Content Wrapper -->
         <div class="content-wrapper">
-            <!-- Content Header (Page header) -->
+            <!-- Content Header -->
             <div class="content-header">
                 <div class="container-fluid">
                     <div class="row mb-2">
@@ -135,7 +189,7 @@ if (isset($_GET['logout'])) {
                     <div class="row">
                         <!-- Card for Pasien Count -->
                         <div class="col-md-3">
-                            <div class="card text-white bg-info mb-3">
+                            <div class="card bg-info text-white mb-3">
                                 <div class="card-header">Total Pasien</div>
                                 <div class="card-body">
                                     <h5 class="card-title"><?php echo $total_pasien; ?></h5>
@@ -145,7 +199,7 @@ if (isset($_GET['logout'])) {
 
                         <!-- Card untuk Dokter -->
                         <div class="col-md-3">
-                            <div class="card text-white bg-success mb-3">
+                            <div class="card bg-success text-white mb-3">
                                 <div class="card-header">Total Dokter</div>
                                 <div class="card-body">
                                     <h5 class="card-title"><?php echo $total_dokter; ?></h5>
@@ -153,9 +207,9 @@ if (isset($_GET['logout'])) {
                             </div>
                         </div>
 
-                        <!-- Card untuk Poli  -->
+                        <!-- Card untuk Poli -->
                         <div class="col-md-3">
-                            <div class="card text-white bg-warning mb-3">
+                            <div class="card bg-warning text-white mb-3">
                                 <div class="card-header">Total Poli</div>
                                 <div class="card-body">
                                     <h5 class="card-title"><?php echo $total_poli; ?></h5>
@@ -165,7 +219,7 @@ if (isset($_GET['logout'])) {
 
                         <!-- Card untuk Obat -->
                         <div class="col-md-3">
-                            <div class="card text-white bg-danger mb-3">
+                            <div class="card bg-danger text-white mb-3">
                                 <div class="card-header">Total Obat</div>
                                 <div class="card-body">
                                     <h5 class="card-title"><?php echo $total_obat; ?></h5>
@@ -197,9 +251,6 @@ if (isset($_GET['logout'])) {
             </section>
         </div>
 
-        <!-- Control Sidebar -->
-        <aside class="control-sidebar control-sidebar-dark"></aside>
-
         <!-- Main Footer -->
         <footer class="main-footer">
             <div class="float-right d-none d-sm-block">
@@ -210,3 +261,4 @@ if (isset($_GET['logout'])) {
     </div>
 </body>
 </html>
+

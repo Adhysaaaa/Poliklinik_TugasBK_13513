@@ -4,6 +4,9 @@ include 'config.php'; // Koneksi ke database
 // Ambil data poli
 $query = $conn->query("SELECT * FROM poli");
 
+$username = isset($_SESSION['username']) ? htmlspecialchars($_SESSION['username']) : "admin1";
+
+
 // Tambah data poli
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_poli'])) {
     $nama_poli = $_POST['nama_poli'];
@@ -19,8 +22,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_poli'])) {
 // Hapus poli
 if (isset($_GET['delete'])) {
     $id = $_GET['delete'];
-    $conn->query("DELETE FROM poli WHERE id = $id");
-    header("Location: manage_poli.php");
+
+    // Cek apakah poli masih digunakan di tabel dokter
+    $check = $conn->query("SELECT COUNT(*) AS count FROM dokter WHERE id_poli = $id");
+    $result = $check->fetch_assoc();
+
+    if ($result['count'] > 0) {
+        // Jika masih ada data terkait di tabel dokter
+        echo "<script>
+            alert('Tidak dapat menghapus poli karena masih digunakan oleh data dokter.');
+            window.location.href = 'manage_poli.php';
+        </script>";
+    } else {
+        // Jika tidak ada data terkait, hapus poli
+        $conn->query("DELETE FROM poli WHERE id = $id");
+        header("Location: manage_poli.php");
+        exit;
+    }
+}
+
+if (isset($_GET['logout'])) {
+    session_destroy();
+    header("Location: home.html");
     exit;
 }
 ?>
@@ -30,11 +53,41 @@ if (isset($_GET['delete'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manajemen Poli</title>
+    <!-- Bootstrap and AdminLTE CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2.0/dist/css/adminlte.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2.0/dist/js/adminlte.min.js"></script>
+    <style>
+        body {
+            background: #f8f9fa;
+        }
+        .main-sidebar {
+            background: #1e2d3b;
+        }
+        .brand-link {
+            background: #004d7a;
+            color: #fff;
+            text-align: center;
+            font-size: 1.25rem;
+            padding: 15px 0;
+        }
+        .user-panel .info a {
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+        .nav-link {
+            color: #ddd;
+            font-size: 1rem;
+            padding: 12px 15px;
+        }
+        .nav-link:hover, .nav-link.active {
+            background: #006494;
+            color: #fff;
+        }
+    </style>
 </head>
 <body class="hold-transition sidebar-mini layout-fixed">
     <div class="wrapper">
@@ -42,8 +95,7 @@ if (isset($_GET['delete'])) {
         <aside class="main-sidebar sidebar-dark-primary elevation-4">
             <!-- Brand Logo -->
             <a href="#" class="brand-link">
-                <img src="https://via.placeholder.com/150" alt="Logo" class="brand-image img-circle elevation-3" style="opacity: .8">
-                <span class="brand-text font-weight-light">Admin Dashboard</span>
+                <span class="brand-text">Admin Dashboard</span>
             </a>
 
             <!-- Sidebar -->
@@ -51,10 +103,10 @@ if (isset($_GET['delete'])) {
                 <!-- User Panel -->
                 <div class="user-panel mt-3 pb-3 mb-3 d-flex">
                     <div class="image">
-                        <img src="https://via.placeholder.com/150" class="img-circle elevation-2" alt="User Image">
+                        <img src="1.jpg" class="img-circle elevation-2" alt="User Image">
                     </div>
                     <div class="info">
-                        <a href="#" class="d-block">Admin</a>
+                        <a href="#" class="d-block"><?php echo $username; ?></a>
                     </div>
                 </div>
 
@@ -89,6 +141,12 @@ if (isset($_GET['delete'])) {
                             <a href="manage_obat.php" class="nav-link">
                                 <i class="nav-icon fas fa-pills"></i>
                                 <p>Manage Obat</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="?logout=true" class="nav-link">
+                                <i class="nav-icon fas fa-sign-out-alt"></i>
+                                <p>Logout</p>
                             </a>
                         </li>
                     </ul>
@@ -139,34 +197,33 @@ if (isset($_GET['delete'])) {
                 </div>
             </section>
         </div>
+    </div>
 
-        <!-- Modal Tambah Poli -->
-        <div class="modal fade" id="addPoliModal" tabindex="-1" aria-labelledby="addPoliModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <form method="POST">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="addPoliModalLabel">Tambah Poli</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    <!-- Modal Tambah Poli -->
+    <div class="modal fade" id="addPoliModal" tabindex="-1" aria-labelledby="addPoliModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="POST">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addPoliModalLabel">Tambah Poli</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="nama_poli" class="form-label">Nama Poli</label>
+                            <input type="text" name="nama_poli" id="nama_poli" class="form-control" required>
                         </div>
-                        <div class="modal-body">
-                            <div class="mb-3">
-                                <label for="nama_poli" class="form-label">Nama Poli</label>
-                                <input type="text" name="nama_poli" id="nama_poli" class="form-control" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="keterangan" class="form-label">Keterangan</label>
-                                <textarea name="keterangan" id="keterangan" class="form-control" rows="3" required></textarea>
-                            </div>
+                        <div class="mb-3">
+                            <label for="keterangan" class="form-label">Keterangan</label>
+                            <textarea name="keterangan" id="keterangan" class="form-control" rows="3" required></textarea>
                         </div>
-                        <div class="modal-footer">
-                            <button type="submit" name="add_poli" class="btn btn-primary">Simpan</button>
-                        </div>
-                    </form>
-                </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" name="add_poli" class="btn btn-primary">Simpan</button>
+                    </div>
+                </form>
             </div>
         </div>
-
     </div>
 
     <!-- Bootstrap 5 and AdminLTE JavaScript -->

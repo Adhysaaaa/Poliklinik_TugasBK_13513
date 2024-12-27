@@ -1,10 +1,14 @@
 <?php
 include 'config.php'; // Koneksi ke database
 
-// Ambil data dokter
+// periksa apakah nama pengguna disimpan dalam sesi
+$username = isset($_SESSION['username']) ? htmlspecialchars($_SESSION['username']) : "admin1";
+
+
+// ambil data dokter
 $query = $conn->query("SELECT dokter.*, poli.nama_poli FROM dokter LEFT JOIN poli ON dokter.id_poli = poli.id");
 
-// Tambah data dokter
+// tambah data dokter
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_dokter'])) {
     $nama = $_POST['nama'];
     $alamat = $_POST['alamat'];
@@ -18,14 +22,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_dokter'])) {
     exit;
 }
 
-// Hapus dokter
+// hapus dokter
 if (isset($_GET['delete'])) {
     $id = $_GET['delete'];
     $conn->query("DELETE FROM dokter WHERE id = $id");
     header("Location: manage_dokter.php");
     exit;
 }
+
+if (isset($_GET['logout'])) {
+    session_destroy();
+    header("Location: home.html");
+    exit;
+}
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -35,29 +46,84 @@ if (isset($_GET['delete'])) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2.0/dist/css/adminlte.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2.0/dist/js/adminlte.min.js"></script>
+    <style>
+        body {
+            background: #f8f9fa;
+        }
+        .main-sidebar {
+            background: #1e2d3b;
+        }
+        .brand-link {
+            background: #004d7a;
+            color: #fff;
+            text-align: center;
+            font-size: 1.25rem;
+            padding: 15px 0;
+        }
+        .user-panel .info a {
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+        .nav-link {
+            color: #ddd;
+            font-size: 1rem;
+            padding: 12px 15px;
+        }
+        .nav-link.active {
+            background: #006494;
+            color: #fff;
+        }
+        .nav-link:hover {
+            background: #006494;
+            color: #fff;
+        }
+        table {
+            border-collapse: separate;
+            border-spacing: 0;
+            width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            background-color: #fff;
+        }
+        thead {
+            background: #004d7a;
+            color: white;
+        }
+        thead th {
+            text-align: center;
+            padding: 12px;
+        }
+        tbody td {
+            text-align: center;
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+        }
+        tbody tr:hover {
+            background: #f1f4f8;
+        }
+        .btn {
+            border-radius: 25px;
+        }
+    </style>
 </head>
 <body class="hold-transition sidebar-mini layout-fixed">
     <div class="wrapper">
-        <!-- Main Sidebar Container -->
+        <!-- Sidebar -->
         <aside class="main-sidebar sidebar-dark-primary elevation-4">
-            <!-- Brand Logo -->
             <a href="#" class="brand-link">
-                <img src="https://via.placeholder.com/150" alt="Logo" class="brand-image img-circle elevation-3" style="opacity: .8">
-                <span class="brand-text font-weight-light">Admin Dashboard</span>
+                <span class="brand-text">Admin Dashboard</span>
             </a>
-
-            <!-- Sidebar -->
             <div class="sidebar">
-                <!-- User Panel -->
                 <div class="user-panel mt-3 pb-3 mb-3 d-flex">
                     <div class="image">
-                        <img src="https://via.placeholder.com/150" class="img-circle elevation-2" alt="User Image">
+                        <img src="1.jpg" class="img-circle elevation-2" alt="User Image">
                     </div>
                     <div class="info">
-                        <a href="#" class="d-block">Admin</a>
+                        <a href="#" class="d-block"><?php echo $username; ?></a>
                     </div>
                 </div>
 
@@ -92,6 +158,12 @@ if (isset($_GET['delete'])) {
                             <a href="manage_obat.php" class="nav-link">
                                 <i class="nav-icon fas fa-pills"></i>
                                 <p>Manage Obat</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="?logout=true" class="nav-link">
+                                <i class="nav-icon fas fa-sign-out-alt"></i>
+                                <p>Logout</p>
                             </a>
                         </li>
                     </ul>
@@ -146,52 +218,52 @@ if (isset($_GET['delete'])) {
                 </div>
             </section>
         </div>
+    </div>
 
-        <!-- Modal Tambah Dokter -->
-        <div class="modal fade" id="addDoctorModal" tabindex="-1" aria-labelledby="addDoctorModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <form method="POST">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="addDoctorModalLabel">Tambah Dokter</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    <!-- Modal Tambah Dokter -->
+    <div class="modal fade" id="addDoctorModal" tabindex="-1" aria-labelledby="addDoctorModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="POST">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addDoctorModalLabel">Tambah Dokter</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="nama" class="form-label">Nama</label>
+                            <input type="text" name="nama" id="nama" class="form-control" required>
                         </div>
-                        <div class="modal-body">
-                            <div class="mb-3">
-                                <label for="nama" class="form-label">Nama</label>
-                                <input type="text" name="nama" id="nama" class="form-control" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="alamat" class="form-label">Alamat</label>
-                                <input type="text" name="alamat" id="alamat" class="form-control" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="no_hp" class="form-label">No HP</label>
-                                <input type="text" name="no_hp" id="no_hp" class="form-control" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="id_poli" class="form-label">Poli</label>
-                                <select name="id_poli" id="id_poli" class="form-select" required>
-                                    <?php
-                                    $poli = $conn->query("SELECT * FROM poli");
-                                    while ($p = $poli->fetch_assoc()):
-                                    ?>
-                                        <option value="<?= $p['id'] ?>"><?= $p['nama_poli'] ?></option>
-                                    <?php endwhile; ?>
-                                </select>
-                            </div>
+                        <div class="mb-3">
+                            <label for="alamat" class="form-label">Alamat</label>
+                            <input type="text" name="alamat" id="alamat" class="form-control" required>
                         </div>
-                        <div class="modal-footer">
-                            <button type="submit" name="add_dokter" class="btn btn-primary">Simpan</button>
+                        <div class="mb-3">
+                            <label for="no_hp" class="form-label">No HP</label>
+                            <input type="text" name="no_hp" id="no_hp" class="form-control" required>
                         </div>
-                    </form>
-                </div>
+                        <div class="mb-3">
+                            <label for="id_poli" class="form-label">Poli</label>
+                            <select name="id_poli" id="id_poli" class="form-select" required>
+                                <?php
+                                $poli = $conn->query("SELECT * FROM poli");
+                                while ($p = $poli->fetch_assoc()):
+                                ?>
+                                    <option value="<?= $p['id'] ?>"><?= $p['nama_poli'] ?></option>
+                                <?php endwhile; ?>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" name="add_dokter" class="btn btn-primary">Simpan</button>
+                    </div>
+                </form>
             </div>
         </div>
-
     </div>
 
     <!-- Bootstrap 5 and AdminLTE JavaScript -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
+

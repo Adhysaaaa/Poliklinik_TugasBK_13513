@@ -2,17 +2,16 @@
 // Start the session
 session_start();
 
-// memastikan login sebagai dokter
+// memastikan user login sebagai dokter
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'dokter') {
     header("Location: login_dokter.php");
     exit;
 }
 
-// Mengambil nama pengguna dan ID dokter dari sesi
-$username = isset($_SESSION['username']) ? htmlspecialchars($_SESSION['username']) : "dokter";
-$id_dokter = isset($_SESSION['id_dokter']) ? $_SESSION['id_dokter'] : null; // Get doctor ID from session
+// mengambil ID dokter dari sesi
+$id_dokter = isset($_SESSION['id_dokter']) ? $_SESSION['id_dokter'] : null;
 
-// Check jika ID dokter ada
+// Check jika ID dokter tersedia
 if (!$id_dokter) {
     die("Doctor ID is not set.");
 }
@@ -20,28 +19,37 @@ if (!$id_dokter) {
 // koneksi ke database
 include('config.php');
 
-// megambil data untuk dashboard
-$query_appointments = "SELECT COUNT(*) AS total_appointments FROM daftar_poli dp
-                        JOIN jadwal_periksa jp ON dp.id_jadwal = jp.id
-                        WHERE jp.id_dokter = ?";
-$query_history = "SELECT COUNT(*) AS total_history FROM periksa p
-                   JOIN daftar_poli dp ON p.id_daftar_poli = dp.id
-                   JOIN jadwal_periksa jp ON dp.id_jadwal = jp.id
-                   WHERE jp.id_dokter = ?";
+// mengambil data dokter
+$query_dokter = "SELECT username, password, nama, alamat, no_hp FROM dokter WHERE id = ?";
+$stmt = $conn->prepare($query_dokter);
+$stmt->bind_param("i", $id_dokter);
+$stmt->execute();
+$result = $stmt->get_result();
+$dokter = $result->fetch_assoc();
 
-// mempersiapkan dan menjalankan query janji temu
-$stmt_appointments = $conn->prepare($query_appointments);
-$stmt_appointments->bind_param("i", $id_dokter);
-$stmt_appointments->execute();
-$total_appointments = $stmt_appointments->get_result()->fetch_assoc()['total_appointments'];
+// form submission
+$message = "";
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $username = htmlspecialchars($_POST['username']);
+    $nama = htmlspecialchars($_POST['nama']);
+    $alamat = htmlspecialchars($_POST['alamat']);
+    $no_hp = htmlspecialchars($_POST['no_hp']);
 
-// mempersiapkan dan menjalankan query riwayat
-$stmt_history = $conn->prepare($query_history);
-$stmt_history->bind_param("i", $id_dokter);
-$stmt_history->execute();
-$total_history = $stmt_history->get_result()->fetch_assoc()['total_history'];
+    // menset password diambil dari alamat
+    $password = $alamat;
 
-// logout 
+    // update dokter detail
+    $update_query = "UPDATE dokter SET username = ?, password = ?, nama = ?, alamat = ?, no_hp = ? WHERE id = ?";
+    $stmt_update = $conn->prepare($update_query);
+    $stmt_update->bind_param("sssssi", $username, $password, $nama, $alamat, $no_hp, $id_dokter);
+
+    if ($stmt_update->execute()) {
+        $message = "Profile updated successfully!";
+    } else {
+        $message = "Error updating profile: " . $stmt_update->error;
+    }
+}
+
 if (isset($_GET['logout'])) {
     session_destroy();
     header("Location: home.html");
@@ -54,11 +62,9 @@ if (isset($_GET['logout'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Doctor Dashboard</title>
-    <!-- Include Bootstrap and AdminLTE CSS -->
+    <title>Update Profile</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2.0/dist/css/adminlte.min.css">
-    <!-- Include FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2.0/dist/js/adminlte.min.js"></script>
@@ -134,7 +140,7 @@ if (isset($_GET['logout'])) {
                         <img src="https://via.placeholder.com/150" class="img-circle elevation-2" alt="User Image">
                     </div>
                     <div class="info">
-                        <a href="#" class="d-block"><?php echo $username; ?></a>
+                        <a href="#" class="d-block"><?php echo htmlspecialchars($_SESSION['username']); ?></a>
                     </div>
                 </div>
 
@@ -160,7 +166,7 @@ if (isset($_GET['logout'])) {
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a href="update_profile.php" class="nav-link">
+                            <a href="update_profile.php" class="nav-link active">
                                 <i class="nav-icon fas fa-user-edit"></i>
                                 <p>Update Profile</p>
                             </a>
@@ -178,44 +184,37 @@ if (isset($_GET['logout'])) {
 
         <!-- Content Wrapper -->
         <div class="content-wrapper">
-            <!-- Content Header -->
-            <div class="content-header">
-                <div class="container-fluid">
-                    <div class="row mb-2">
-                        <div class="col-sm-6">
-                            <h1 class="m-0">Doctor Dashboard</h1>
-                        </div>
+            <div class="container mt-5">
+                <h2 class="mb-4">Update Profile</h2>
+                <?php if ($message): ?>
+                    <div class="alert alert-info"> <?php echo $message; ?> </div>
+                <?php endif; ?>
+                <form method="POST" action="">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="username" name="username" value="<?php echo $dokter['username']; ?>" required>
                     </div>
-                </div>
+
+                    <div class="mb-3">
+                        <label for="nama" class="form-label">Full Name</label>
+                        <input type="text" class="form-control" id="nama" name="nama" value="<?php echo $dokter['nama']; ?>" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="alamat" class="form-label">Address</label>
+                        <input type="text" class="form-control" id="alamat" name="alamat" value="<?php echo $dokter['alamat']; ?>" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="no_hp" class="form-label">Phone Number</label>
+                        <input type="text" class="form-control" id="no_hp" name="no_hp" value="<?php echo $dokter['no_hp']; ?>" required>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Update Profile</button>
+                    <a href="dokter_dashboard.php" class="btn btn-secondary">Back to Dashboard</a>
+                </form>
             </div>
-
-            <!-- Main content -->
-            <section class="content">
-                <div class="container-fluid">
-                    <div class="row">
-                        <!-- Card for Upcoming Appointments -->
-                        <div class="col-md-3">
-                            <div class="card bg-info text-white mb-3">
-                                <div class="card-header">Upcoming Appointments</div>
-                                <div class="card-body">
-                                    <h5 class="card-title"><?php echo $total_appointments; ?></h5>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Card for Patient History -->
-                        <div class="col-md-3">
-                            <div class="card bg-success text-white mb-3">
-                                <div class="card-header">Patient History</div>
-                                <div class="card-body">
-                                    <h5 class="card-title"><?php echo $total_history; ?></h5>
-                                </div>
-                            </div>
-                        </div>
-                </div>
-            </section>
         </div>
-
         <!-- Main Footer -->
         <footer class="main-footer">
             <div class="float-right d-none d-sm-block">

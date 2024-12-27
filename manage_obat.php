@@ -1,10 +1,13 @@
 <?php
 include 'config.php'; // Koneksi ke database
 
-// Ambil data obat
+// ambil data obat
 $query = $conn->query("SELECT * FROM obat");
 
-// Tambah data obat
+$username = isset($_SESSION['username']) ? htmlspecialchars($_SESSION['username']) : "admin1";
+
+
+// tambah data obat
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_obat'])) {
     $nama_obat = $_POST['nama_obat'];
     $kemasan = $_POST['kemasan'];
@@ -17,11 +20,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_obat'])) {
     exit;
 }
 
-// Hapus obat
+// hapus obat
 if (isset($_GET['delete'])) {
     $id = $_GET['delete'];
     $conn->query("DELETE FROM obat WHERE id = $id");
     header("Location: manage_obat.php");
+    exit;
+}
+
+if (isset($_GET['logout'])) {
+    session_destroy();
+    header("Location: home.html");
     exit;
 }
 ?>
@@ -36,6 +45,39 @@ if (isset($_GET['delete'])) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2.0/dist/js/adminlte.min.js"></script>
+    <style>
+        body {
+            background: #f8f9fa;
+        }
+        .main-sidebar {
+            background: #1e2d3b;
+        }
+        .brand-link {
+            background: #004d7a;
+            color: #fff;
+            text-align: center;
+            font-size: 1.25rem;
+            padding: 15px 0;
+        }
+        .user-panel .info a {
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: bold;
+        }
+        .nav-link {
+            color: #ddd;
+            font-size: 1rem;
+            padding: 12px 15px;
+        }
+        .nav-link:hover {
+            background: #006494;
+            color: #fff;
+        }
+        .nav-link.active {
+            background: #006494;
+            color: #fff;
+        }
+    </style>
 </head>
 <body class="hold-transition sidebar-mini layout-fixed">
     <div class="wrapper">
@@ -43,8 +85,7 @@ if (isset($_GET['delete'])) {
         <aside class="main-sidebar sidebar-dark-primary elevation-4">
             <!-- Brand Logo -->
             <a href="#" class="brand-link">
-                <img src="https://via.placeholder.com/150" alt="Logo" class="brand-image img-circle elevation-3" style="opacity: .8">
-                <span class="brand-text font-weight-light">Admin Dashboard</span>
+                <span class="brand-text">Admin Dashboard</span>
             </a>
 
             <!-- Sidebar -->
@@ -52,10 +93,10 @@ if (isset($_GET['delete'])) {
                 <!-- User Panel -->
                 <div class="user-panel mt-3 pb-3 mb-3 d-flex">
                     <div class="image">
-                        <img src="https://via.placeholder.com/150" class="img-circle elevation-2" alt="User Image">
+                        <img src="1.jpg" class="img-circle elevation-2" alt="User Image">
                     </div>
                     <div class="info">
-                        <a href="#" class="d-block">Admin</a>
+                        <a href="#" class="d-block"><?php echo $username; ?></a>
                     </div>
                 </div>
 
@@ -92,6 +133,12 @@ if (isset($_GET['delete'])) {
                                 <p>Manage Obat</p>
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a href="?logout=true" class="nav-link">
+                                <i class="nav-icon fas fa-sign-out-alt"></i>
+                                <p>Logout</p>
+                            </a>
+                        </li>
                     </ul>
                 </nav>
             </div>
@@ -99,7 +146,6 @@ if (isset($_GET['delete'])) {
 
         <!-- Content Wrapper -->
         <div class="content-wrapper">
-            <!-- Content Header -->
             <div class="content-header">
                 <div class="container-fluid">
                     <div class="row mb-2">
@@ -110,7 +156,6 @@ if (isset($_GET['delete'])) {
                 </div>
             </div>
 
-            <!-- Main content -->
             <section class="content">
                 <div class="container-fluid">
                     <button class="btn btn-success mb-3" data-bs-toggle="modal" data-bs-target="#addObatModal">Tambah Obat</button>
@@ -142,41 +187,40 @@ if (isset($_GET['delete'])) {
                 </div>
             </section>
         </div>
-
-        <!-- Modal Tambah Obat -->
-        <div class="modal fade" id="addObatModal" tabindex="-1" aria-labelledby="addObatModalLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <form method="POST">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="addObatModalLabel">Tambah Obat</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="mb-3">
-                                <label for="nama_obat" class="form-label">Nama Obat</label>
-                                <input type="text" name="nama_obat" id="nama_obat" class="form-control" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="kemasan" class="form-label">Kemasan</label>
-                                <input type="text" name="kemasan" id="kemasan" class="form-control" required>
-                            </div>
-                            <div class="mb-3">
-                                <label for="harga" class="form-label">Harga</label>
-                                <input type="number" name="harga" id="harga" class="form-control" required>
-                            </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="submit" name="add_obat" class="btn btn-primary">Simpan</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-
     </div>
 
-    <!-- Bootstrap 5 and AdminLTE JavaScript -->
+    <!-- Modal Tambah Obat -->
+    <div class="modal fade" id="addObatModal" tabindex="-1" aria-labelledby="addObatModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="POST">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addObatModalLabel">Tambah Obat</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="nama_obat" class="form-label">Nama Obat</label>
+                            <input type="text" name="nama_obat" id="nama_obat" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="kemasan" class="form-label">Kemasan</label>
+                            <input type="text" name="kemasan" id="kemasan" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="harga" class="form-label">Harga</label>
+                            <input type="number" name="harga" id="harga" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" name="add_obat" class="btn btn-primary">Simpan</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
+
